@@ -1,0 +1,23 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "live2d_ver1.moc3",
+		"Textures": [
+			"live2d_ver1.8192/texture_00.png"
+		],
+		"Physics": "live2d_ver1.physics3.json",
+		"DisplayInfo": "live2d_ver1.cdi3.json"
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "LipSync",
+			"Ids": []
+		},
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": []
+		}
+	]
+}
