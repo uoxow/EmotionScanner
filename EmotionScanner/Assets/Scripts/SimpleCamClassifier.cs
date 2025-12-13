@@ -31,13 +31,14 @@ public class SimpleCamClassifier : MonoBehaviour
     void ResetAllAnimations()
     {
         if (anim == null) return;
+        Debug.Log("表情リセット");
         anim.SetBool("sorrow", false);
         anim.SetBool("astonish", false);
         anim.SetBool("Runrun", false);
         anim.SetBool("happiness", false);
     }
 
-
+    int flg =0;
     void Start()
     {
         if (labelsAsset != null)
@@ -55,11 +56,13 @@ public class SimpleCamClassifier : MonoBehaviour
         webCamTexture = new WebCamTexture();
         previewUI.texture = webCamTexture;
         webCamTexture.Play();
+        Debug.Log("プログラムを開始");
     }
 
     void Update()
     {
         if (webCamTexture == null || !webCamTexture.didUpdateThisFrame) return;
+        ResetAllAnimations();
 
         // --- 【変更点】ここからクロップ処理 ---
 
@@ -75,6 +78,8 @@ public class SimpleCamClassifier : MonoBehaviour
 
         // 3. 推論実行
         worker.Schedule(inputTensor);
+        
+        Debug.Log("推論を実行");
 
         // --- (ここから下は今までと同じ) ---
 
@@ -91,15 +96,29 @@ public class SimpleCamClassifier : MonoBehaviour
                 maxIndex = i;
             }
         }
-
         // アニメーション制御
         if (maxIndex != lastIndex)
         {
             ResetAllAnimations();
-            if (maxIndex == 1) anim.SetBool("sorrow", true);
-            else if (maxIndex == 2) anim.SetBool("astonish", true);
-            else if (maxIndex == 3) anim.SetBool("happiness", true);
-            
+            if (maxIndex == 1) {
+                anim.SetBool("sorrow", true);
+                Debug.Log("悲しみを検知");
+            }
+            else if (maxIndex == 2) {
+                anim.SetBool("astonish", true);
+                Debug.Log("驚きを検知");
+            }
+            else if (maxIndex == 3) {
+                if(flg==0){
+                    anim.SetBool("happiness", true);
+                    Debug.Log("幸せを検知");
+                    flg = 1;
+                }else{
+                    anim.SetBool("Runrun", true);
+                    Debug.Log("楽しいを検知");
+                    flg = 0;
+                }
+            }
             lastIndex = maxIndex;
         }
 
@@ -107,10 +126,12 @@ public class SimpleCamClassifier : MonoBehaviour
         if (labels != null && maxIndex < labels.Length)
         {
             resultText.text = $"{labels[maxIndex]}\n({maxVal * 100:F1}%)";
+            Debug.Log("推論の結果はディスプレイ");
         }
         else
         {
             resultText.text = $"Index: {maxIndex}\n({maxVal * 100:F1}%)";
+            Debug.Log("結果はディスプレイ2");
         }
         
         // 【重要】作ったRenderTextureはお掃除（解放）しないとメモリがあふれます
