@@ -37,6 +37,32 @@ public class SimpleCamClassifier : MonoBehaviour
         anim.SetBool("Runrun", false);
         anim.SetBool("happiness", false);
     }
+ // 正方形に切り抜きつつ、左右反転（鏡）にする関数
+    void CropToSquare(Texture source, RenderTexture destination)
+    {
+        float scaleHeight = 1.0f;
+        float scaleWidth = 1.0f;
+
+        if (source.width > source.height)
+        {
+            scaleWidth = (float)source.height / source.width;
+        }
+        else
+        {
+            scaleHeight = (float)source.width / source.height;
+        }
+
+        float offsetX = (1.0f - scaleWidth) / 2.0f;
+        float offsetY = (1.0f - scaleHeight) / 2.0f;
+
+        // --- ここが変更点（鏡にする魔法） ---
+        // scaleWidth にマイナスをつけると、画像がクルッと反転します
+        // その分、表示位置がずれるので offset の計算も少し変えます
+        Vector2 scale = new Vector2(-scaleWidth, scaleHeight);
+        Vector2 offset = new Vector2(offsetX + scaleWidth, offsetY); // 反転した分ずらす
+
+        Graphics.Blit(source, destination, scale, offset);
+    }
 
     int flg =0;
     void Start()
@@ -62,20 +88,26 @@ public class SimpleCamClassifier : MonoBehaviour
     void Update()
     {
         if (webCamTexture == null || !webCamTexture.didUpdateThisFrame) return;
-        ResetAllAnimations();
+        //ResetAllAnimations();
 
-        // --- 【変更点】ここからクロップ処理 ---
+        // 1. 切り抜き用のテクスチャ（RenderTexture）を準備
+        // ※ Start()で作っておくのが理想ですが、まずはここで説明します
+        RenderTexture cropRT = RenderTexture.GetTemporary(ImageSize, ImageSize, 0);
 
-        // 1. カメラの映像から、真ん中の正方形を切り抜いた「新しい画像」を作ります
-        RenderTexture squareTexture = GetCenterSquare(webCamTexture);
+        // 2. さっき作った関数で、カメラ映像(webCamTexture)の真ん中を cropRT にコピー！
+        // これで「つぶれていない正方形の画像」が cropRT に入ります。
+        CropToSquare(webCamTexture, cropRT);
 
-        // 2. その正方形の画像を使ってTensorを作ります
-        // (注: NHWC設定はそのまま使います！)
+        // 3. 画面のプレビューにも、切り抜いた正方形を表示（確認用）
+        previewUI.texture = cropRT;
+
+        // 4. Tensorの作成
         using Tensor<float> inputTensor = new Tensor<float>(new TensorShape(1, ImageSize, ImageSize, 3));
-        TextureConverter.ToTensor(squareTexture, inputTensor, new TextureTransform()
-            .SetDimensions(width: ImageSize, height: ImageSize, channels: 3)
+    
+        // 5. 切り抜いた画像(cropRT)をSentisに渡す
+        TextureConverter.ToTensor(cropRT, inputTensor, new TextureTransform()
+            .SetDimensions(width: ImageSize, height: ImageSize, channels: 3) // もう正方形なので変形しない
             .SetTensorLayout(TensorLayout.NHWC));
-
         // 3. 推論実行
         worker.Schedule(inputTensor);
         
@@ -135,7 +167,7 @@ public class SimpleCamClassifier : MonoBehaviour
         }
         
         // 【重要】作ったRenderTextureはお掃除（解放）しないとメモリがあふれます
-        RenderTexture.ReleaseTemporary(squareTexture);
+        RenderTexture.ReleaseTemporary(cropRT);
     }
 
     // --- 【新機能】カメラの真ん中を切り抜く魔法の関数 ---
