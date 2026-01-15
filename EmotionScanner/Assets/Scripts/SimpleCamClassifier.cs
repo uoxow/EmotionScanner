@@ -21,7 +21,7 @@ public class SimpleCamClassifier : MonoBehaviour
     private string[] labels;
     
     private const string InputName = "sequential_45_input";
-    private const string OutputName = "sequential_47";
+    private const string OutputName = "sequential_3";
     private const int ImageSize = 224;
 
     // 高速切り替え防止用
