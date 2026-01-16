@@ -1,0 +1,4 @@
+0 nomal
+1 sorrow
+2 astonish
+3 Runrun
